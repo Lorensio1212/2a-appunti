@@ -22,7 +22,7 @@ const Layout = ({ children, title, action, backLink }: LayoutProps) => {
                 &larr; {backLink.label}
               </a>
             )}
-            <h1 className="text-xl font-semibold text-gray-900">{title || "2A APPUNTI"}</h1>
+            <h1 className="text-xl font-semibold text-gray-900">{title || "1A APPUNTI"}</h1>
           </div>
           <div className="absolute left-4 top-4 sm:relative sm:left-0 sm:top-0">
             {action}

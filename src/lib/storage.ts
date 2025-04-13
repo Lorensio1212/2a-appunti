@@ -1,3 +1,4 @@
+
 export interface Subject {
   id: string;
   name: string;
@@ -13,56 +14,121 @@ export interface Note {
   createdAt: number;
 }
 
-// Recupera le materie dal localStorage
-export const getSubjects = (): Subject[] => {
-  const subjects = localStorage.getItem('subjects');
-  return subjects ? JSON.parse(subjects) : [];
+// URL di base per l'API
+const API_BASE_URL = "https://jsonbin.io/v3/b";
+// ID del bin JSON
+const BIN_ID = "66930a1b266cfc3fde91381d";
+// Chiave API per l'accesso
+const API_KEY = "$2a$10$vKQ6mZUKaaJ6PVHnTiSnBuZ7Oc/T6g32cZ5vRJL8Wgydf0EftzZJC";
+
+// Funzione per ottenere tutti i dati
+const fetchData = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${BIN_ID}/latest`, {
+      headers: {
+        "X-Master-Key": API_KEY,
+        "X-Bin-Meta": "false"
+      }
+    });
+    
+    if (!response.ok) {
+      console.error("Errore nel recupero dei dati:", await response.text());
+      return { subjects: [], notes: [] };
+    }
+    
+    const data = await response.json();
+    return data || { subjects: [], notes: [] };
+  } catch (error) {
+    console.error("Errore durante il fetch dei dati:", error);
+    return { subjects: [], notes: [] };
+  }
+};
+
+// Funzione per aggiornare tutti i dati
+const updateData = async (data: { subjects: Subject[], notes: Note[] }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/${BIN_ID}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": API_KEY
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      console.error("Errore nell'aggiornamento dei dati:", await response.text());
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Errore durante l'aggiornamento dei dati:", error);
+    return false;
+  }
+};
+
+// Recupera le materie dal database condiviso
+export const getSubjects = async (): Promise<Subject[]> => {
+  const data = await fetchData();
+  return data.subjects || [];
 };
 
 // Salva una nuova materia
-export const saveSubject = (name: string): Subject => {
-  const subjects = getSubjects();
+export const saveSubject = async (name: string): Promise<Subject | null> => {
+  const data = await fetchData();
   const newSubject: Subject = {
     id: Date.now().toString(),
     name,
     createdAt: Date.now()
   };
   
-  subjects.unshift(newSubject); // Aggiunge all'inizio dell'array
-  localStorage.setItem('subjects', JSON.stringify(subjects));
-  return newSubject;
+  const updatedSubjects = [newSubject, ...(data.subjects || [])];
+  const success = await updateData({ ...data, subjects: updatedSubjects });
+  
+  if (success) {
+    // Trigger un evento personalizzato per notificare altri componenti
+    window.dispatchEvent(new CustomEvent("dataUpdated"));
+    return newSubject;
+  }
+  return null;
 };
 
 // Ottiene una materia specifica tramite ID
-export const getSubject = (id: string): Subject | undefined => {
-  const subjects = getSubjects();
-  return subjects.find(subject => subject.id === id);
+export const getSubject = async (id: string): Promise<Subject | undefined> => {
+  const data = await fetchData();
+  return (data.subjects || []).find(subject => subject.id === id);
 };
 
 // Elimina una materia specifica tramite ID
-export const deleteSubject = (id: string): boolean => {
-  const subjects = getSubjects();
+export const deleteSubject = async (id: string): Promise<boolean> => {
+  const data = await fetchData();
+  const subjects = data.subjects || [];
   const filteredSubjects = subjects.filter(subject => subject.id !== id);
   
   if (filteredSubjects.length < subjects.length) {
-    localStorage.setItem('subjects', JSON.stringify(filteredSubjects));
-    
     // Elimina anche tutti gli appunti associati alla materia
-    const notes = localStorage.getItem('notes');
-    if (notes) {
-      const allNotes = JSON.parse(notes);
-      const filteredNotes = allNotes.filter((note: Note) => note.subjectId !== id);
-      localStorage.setItem('notes', JSON.stringify(filteredNotes));
-    }
+    const notes = data.notes || [];
+    const filteredNotes = notes.filter((note: Note) => note.subjectId !== id);
     
-    return true;
+    const success = await updateData({ 
+      ...data, 
+      subjects: filteredSubjects, 
+      notes: filteredNotes 
+    });
+    
+    if (success) {
+      window.dispatchEvent(new CustomEvent("dataUpdated"));
+      return true;
+    }
   }
   return false;
 };
 
 // Aggiorna una materia esistente
-export const updateSubject = (id: string, name: string): boolean => {
-  const subjects = getSubjects();
+export const updateSubject = async (id: string, name: string): Promise<boolean> => {
+  const data = await fetchData();
+  const subjects = data.subjects || [];
   const index = subjects.findIndex(subject => subject.id === id);
   
   if (index !== -1) {
@@ -70,23 +136,26 @@ export const updateSubject = (id: string, name: string): boolean => {
       ...subjects[index],
       name
     };
-    localStorage.setItem('subjects', JSON.stringify(subjects));
-    return true;
+    
+    const success = await updateData({ ...data, subjects });
+    if (success) {
+      window.dispatchEvent(new CustomEvent("dataUpdated"));
+      return true;
+    }
   }
   return false;
 };
 
 // Recupera gli appunti per una materia specifica
-export const getNotes = (subjectId: string): Note[] => {
-  const notes = localStorage.getItem('notes');
-  const allNotes = notes ? JSON.parse(notes) : [];
+export const getNotes = async (subjectId: string): Promise<Note[]> => {
+  const data = await fetchData();
+  const allNotes = data.notes || [];
   return allNotes.filter((note: Note) => note.subjectId === subjectId);
 };
 
 // Salva un nuovo appunto
-export const saveNote = (subjectId: string, title: string, filename: string, fileData: string): Note => {
-  const notes = localStorage.getItem('notes');
-  const allNotes = notes ? JSON.parse(notes) : [];
+export const saveNote = async (subjectId: string, title: string, filename: string, fileData: string): Promise<Note | null> => {
+  const data = await fetchData();
   
   const newNote: Note = {
     id: Date.now().toString(),
@@ -97,50 +166,58 @@ export const saveNote = (subjectId: string, title: string, filename: string, fil
     createdAt: Date.now()
   };
   
-  allNotes.unshift(newNote); // Aggiunge all'inizio dell'array
-  localStorage.setItem('notes', JSON.stringify(allNotes));
-  return newNote;
+  const updatedNotes = [newNote, ...(data.notes || [])];
+  const success = await updateData({ ...data, notes: updatedNotes });
+  
+  if (success) {
+    window.dispatchEvent(new CustomEvent("dataUpdated"));
+    return newNote;
+  }
+  return null;
 };
 
 // Ottiene un appunto specifico tramite ID
-export const getNote = (id: string): Note | undefined => {
-  const notes = localStorage.getItem('notes');
-  const allNotes = notes ? JSON.parse(notes) : [];
+export const getNote = async (id: string): Promise<Note | undefined> => {
+  const data = await fetchData();
+  const allNotes = data.notes || [];
   return allNotes.find((note: Note) => note.id === id);
 };
 
 // Elimina un appunto specifico tramite ID
-export const deleteNote = (id: string): boolean => {
-  const notes = localStorage.getItem('notes');
-  if (!notes) return false;
+export const deleteNote = async (id: string): Promise<boolean> => {
+  const data = await fetchData();
+  const notes = data.notes || [];
+  const filteredNotes = notes.filter((note: Note) => note.id !== id);
   
-  const allNotes = JSON.parse(notes);
-  const filteredNotes = allNotes.filter((note: Note) => note.id !== id);
-  
-  if (filteredNotes.length < allNotes.length) {
-    localStorage.setItem('notes', JSON.stringify(filteredNotes));
-    return true;
+  if (filteredNotes.length < notes.length) {
+    const success = await updateData({ ...data, notes: filteredNotes });
+    if (success) {
+      window.dispatchEvent(new CustomEvent("dataUpdated"));
+      return true;
+    }
   }
   return false;
 };
 
 // Aggiorna un appunto esistente
-export const updateNote = (id: string, title: string, filename?: string, fileData?: string): boolean => {
-  const notes = localStorage.getItem('notes');
-  if (!notes) return false;
-  
-  const allNotes = JSON.parse(notes);
-  const index = allNotes.findIndex((note: Note) => note.id === id);
+export const updateNote = async (id: string, title: string, filename?: string, fileData?: string): Promise<boolean> => {
+  const data = await fetchData();
+  const notes = data.notes || [];
+  const index = notes.findIndex((note: Note) => note.id === id);
   
   if (index !== -1) {
-    allNotes[index] = {
-      ...allNotes[index],
+    notes[index] = {
+      ...notes[index],
       title,
       ...(filename && { filename }),
       ...(fileData && { fileData })
     };
-    localStorage.setItem('notes', JSON.stringify(allNotes));
-    return true;
+    
+    const success = await updateData({ ...data, notes });
+    if (success) {
+      window.dispatchEvent(new CustomEvent("dataUpdated"));
+      return true;
+    }
   }
   return false;
 };

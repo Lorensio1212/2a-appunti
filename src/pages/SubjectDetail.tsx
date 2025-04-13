@@ -6,16 +6,42 @@ import AddButton from "@/components/AddButton";
 import NotesList from "@/components/NotesList";
 import NoteForm from "@/components/NoteForm";
 import { getSubject } from "@/lib/storage";
+import { toast } from "sonner";
 
 const SubjectDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [subject, setSubject] = useState(id ? getSubject(id) : undefined);
+  const [subject, setSubject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [showNoteForm, setShowNoteForm] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      setSubject(getSubject(id));
-    }
+    const loadSubject = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const subjectData = await getSubject(id);
+        setSubject(subjectData);
+      } catch (error) {
+        console.error("Errore nel caricamento della materia:", error);
+        toast.error("Impossibile caricare la materia");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadSubject();
+    
+    // Aggiungi un event listener per il dataUpdated event
+    const handleDataUpdated = () => {
+      loadSubject();
+    };
+    
+    window.addEventListener("dataUpdated", handleDataUpdated);
+    
+    return () => {
+      window.removeEventListener("dataUpdated", handleDataUpdated);
+    };
   }, [id]);
 
   const handleAddNote = () => {
@@ -28,9 +54,21 @@ const SubjectDetail = () => {
 
   const handleSuccess = () => {
     setShowNoteForm(false);
-    // Emette un evento per aggiornare la lista degli appunti
-    window.dispatchEvent(new Event("storage"));
   };
+
+  // Se è in caricamento
+  if (loading) {
+    return (
+      <Layout
+        title="Caricamento..."
+        backLink={{ to: "/", label: "Torna alle materie" }}
+      >
+        <div className="text-center py-10">
+          <p className="text-muted-foreground">Caricamento materia in corso...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   // Se l'ID non è valido o la materia non esiste
   if (!id || !subject) {

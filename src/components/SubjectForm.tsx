@@ -17,7 +17,7 @@ const SubjectForm = ({ open, onClose, onSuccess }: SubjectFormProps) => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim()) {
       toast.error("Inserisci un nome per la materia");
       return;
@@ -25,10 +25,14 @@ const SubjectForm = ({ open, onClose, onSuccess }: SubjectFormProps) => {
 
     setLoading(true);
     try {
-      saveSubject(name.trim());
-      toast.success("Materia aggiunta con successo");
-      setName("");
-      onSuccess();
+      const result = await saveSubject(name.trim());
+      if (result) {
+        toast.success("Materia aggiunta con successo");
+        setName("");
+        onSuccess();
+      } else {
+        toast.error("Errore durante l'aggiunta della materia");
+      }
     } catch (error) {
       toast.error("Errore durante l'aggiunta della materia");
       console.error(error);

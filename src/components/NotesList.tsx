@@ -19,11 +19,20 @@ interface NotesListProps {
 
 const NotesList = ({ subjectId }: NotesListProps) => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
-  const loadNotes = () => {
-    const loadedNotes = getNotes(subjectId);
-    setNotes(loadedNotes);
+  const loadNotes = async () => {
+    setLoading(true);
+    try {
+      const loadedNotes = await getNotes(subjectId);
+      setNotes(loadedNotes);
+    } catch (error) {
+      console.error("Errore nel caricamento degli appunti:", error);
+      toast.error("Impossibile caricare gli appunti");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDownload = (note: Note, e: React.MouseEvent) => {
@@ -37,15 +46,14 @@ const NotesList = ({ subjectId }: NotesListProps) => {
     }
   };
 
-  const handleDeleteNote = (id: string, e: React.MouseEvent) => {
+  const handleDeleteNote = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     
     try {
-      const deleted = deleteNote(id);
+      const deleted = await deleteNote(id);
       if (deleted) {
         toast.success("Appunto eliminato con successo");
-        loadNotes();
       } else {
         toast.error("Impossibile eliminare l'appunto");
       }
@@ -63,17 +71,30 @@ const NotesList = ({ subjectId }: NotesListProps) => {
 
   const handleEditSuccess = () => {
     setEditingNote(null);
-    loadNotes();
   };
 
   useEffect(() => {
     loadNotes();
-    // Aggiungi un event listener per aggiornare la lista quando cambia lo storage
-    window.addEventListener("storage", loadNotes);
+    
+    // Aggiungi event listener per il dataUpdated event
+    const handleDataUpdated = () => {
+      loadNotes();
+    };
+    
+    window.addEventListener("dataUpdated", handleDataUpdated);
+    
     return () => {
-      window.removeEventListener("storage", loadNotes);
+      window.removeEventListener("dataUpdated", handleDataUpdated);
     };
   }, [subjectId]);
+
+  if (loading) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-muted-foreground">Caricamento appunti in corso...</p>
+      </div>
+    );
+  }
 
   if (notes.length === 0) {
     return (

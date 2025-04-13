@@ -15,31 +15,45 @@ import SubjectEditForm from "./SubjectEditForm";
 
 const SubjectList = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
 
-  const loadSubjects = () => {
-    const loadedSubjects = getSubjects();
-    setSubjects(loadedSubjects);
+  const loadSubjects = async () => {
+    setLoading(true);
+    try {
+      const loadedSubjects = await getSubjects();
+      setSubjects(loadedSubjects);
+    } catch (error) {
+      console.error("Errore nel caricamento delle materie:", error);
+      toast.error("Impossibile caricare le materie");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadSubjects();
-    // Aggiungi un event listener per aggiornare la lista quando cambia lo storage
-    window.addEventListener("storage", loadSubjects);
+    
+    // Aggiungi event listener per il dataUpdated event
+    const handleDataUpdated = () => {
+      loadSubjects();
+    };
+    
+    window.addEventListener("dataUpdated", handleDataUpdated);
+    
     return () => {
-      window.removeEventListener("storage", loadSubjects);
+      window.removeEventListener("dataUpdated", handleDataUpdated);
     };
   }, []);
 
-  const handleDeleteSubject = (id: string, e: React.MouseEvent) => {
+  const handleDeleteSubject = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     try {
-      const deleted = deleteSubject(id);
+      const deleted = await deleteSubject(id);
       if (deleted) {
         toast.success("Materia eliminata con successo");
-        loadSubjects();
       } else {
         toast.error("Impossibile eliminare la materia");
       }
@@ -57,8 +71,15 @@ const SubjectList = () => {
 
   const handleEditSuccess = () => {
     setEditingSubject(null);
-    loadSubjects();
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-muted-foreground">Caricamento materie in corso...</p>
+      </div>
+    );
+  }
 
   if (subjects.length === 0) {
     return (

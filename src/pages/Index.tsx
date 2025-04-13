@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Layout from "@/components/Layout";
 import AddButton from "@/components/AddButton";
 import SubjectList from "@/components/SubjectList";
@@ -7,11 +7,6 @@ import SubjectForm from "@/components/SubjectForm";
 
 const Index = () => {
   const [showSubjectForm, setShowSubjectForm] = useState(false);
-
-  useEffect(() => {
-    // Emette un evento per aggiornare la lista delle materie quando si accede alla pagina principale
-    window.dispatchEvent(new Event("storage"));
-  }, []);
 
   const handleAddSubject = () => {
     setShowSubjectForm(true);
@@ -23,8 +18,6 @@ const Index = () => {
 
   const handleSuccess = () => {
     setShowSubjectForm(false);
-    // Emette un evento per aggiornare la lista delle materie
-    window.dispatchEvent(new Event("storage"));
   };
 
   return (

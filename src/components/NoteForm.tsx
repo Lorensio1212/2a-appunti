@@ -46,19 +46,24 @@ const NoteForm = ({ open, onClose, onSuccess, subjectId }: NoteFormProps) => {
     try {
       // Converti il file in Base64
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         if (event.target && event.target.result) {
           // Salva l'appunto
-          saveNote(
+          const result = await saveNote(
             subjectId,
             title.trim(),
             file.name,
             event.target.result as string
           );
-          toast.success("Appunto aggiunto con successo");
-          setTitle("");
-          setFile(null);
-          onSuccess();
+          
+          if (result) {
+            toast.success("Appunto aggiunto con successo");
+            setTitle("");
+            setFile(null);
+            onSuccess();
+          } else {
+            toast.error("Errore durante l'aggiunta dell'appunto");
+          }
         }
       };
       reader.onerror = () => {
