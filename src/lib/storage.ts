@@ -40,6 +40,27 @@ export const getSubject = (id: string): Subject | undefined => {
   return subjects.find(subject => subject.id === id);
 };
 
+// Elimina una materia specifica tramite ID
+export const deleteSubject = (id: string): boolean => {
+  const subjects = getSubjects();
+  const filteredSubjects = subjects.filter(subject => subject.id !== id);
+  
+  if (filteredSubjects.length < subjects.length) {
+    localStorage.setItem('subjects', JSON.stringify(filteredSubjects));
+    
+    // Elimina anche tutti gli appunti associati alla materia
+    const notes = localStorage.getItem('notes');
+    if (notes) {
+      const allNotes = JSON.parse(notes);
+      const filteredNotes = allNotes.filter((note: Note) => note.subjectId !== id);
+      localStorage.setItem('notes', JSON.stringify(filteredNotes));
+    }
+    
+    return true;
+  }
+  return false;
+};
+
 // Recupera gli appunti per una materia specifica
 export const getNotes = (subjectId: string): Note[] => {
   const notes = localStorage.getItem('notes');
@@ -71,6 +92,21 @@ export const getNote = (id: string): Note | undefined => {
   const notes = localStorage.getItem('notes');
   const allNotes = notes ? JSON.parse(notes) : [];
   return allNotes.find((note: Note) => note.id === id);
+};
+
+// Elimina un appunto specifico tramite ID
+export const deleteNote = (id: string): boolean => {
+  const notes = localStorage.getItem('notes');
+  if (!notes) return false;
+  
+  const allNotes = JSON.parse(notes);
+  const filteredNotes = allNotes.filter((note: Note) => note.id !== id);
+  
+  if (filteredNotes.length < allNotes.length) {
+    localStorage.setItem('notes', JSON.stringify(filteredNotes));
+    return true;
+  }
+  return false;
 };
 
 // Scarica un file

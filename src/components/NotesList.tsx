@@ -1,10 +1,16 @@
 
 import { useEffect, useState } from "react";
-import { Download, FileText } from "lucide-react";
-import { getNotes, Note, downloadFile } from "@/lib/storage";
+import { Download, FileText, MoreVertical, Trash2 } from "lucide-react";
+import { getNotes, Note, downloadFile, deleteNote } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NotesListProps {
   subjectId: string;
@@ -18,12 +24,31 @@ const NotesList = ({ subjectId }: NotesListProps) => {
     setNotes(loadedNotes);
   };
 
-  const handleDownload = (note: Note) => {
+  const handleDownload = (note: Note, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       downloadFile(note);
       toast.success("Download iniziato");
     } catch (error) {
       toast.error("Errore durante il download");
+      console.error(error);
+    }
+  };
+
+  const handleDeleteNote = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    try {
+      const deleted = deleteNote(id);
+      if (deleted) {
+        toast.success("Appunto eliminato con successo");
+        loadNotes();
+      } else {
+        toast.error("Impossibile eliminare l'appunto");
+      }
+    } catch (error) {
+      toast.error("Errore durante l'eliminazione dell'appunto");
       console.error(error);
     }
   };
@@ -49,9 +74,27 @@ const NotesList = ({ subjectId }: NotesListProps) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
       {notes.map((note) => (
         <Card key={note.id} className="h-full hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center gap-2 pb-2">
-            <FileText className="h-5 w-5 text-accent-blue" />
-            <h3 className="font-medium text-lg">{note.title}</h3>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-accent-blue" />
+              <h3 className="font-medium text-lg">{note.title}</h3>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <button className="opacity-70 hover:opacity-100 focus:outline-none">
+                  <MoreVertical className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem 
+                  className="text-red-500 focus:text-red-500 cursor-pointer" 
+                  onClick={(e) => handleDeleteNote(note.id, e)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Elimina
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground truncate">
@@ -60,7 +103,7 @@ const NotesList = ({ subjectId }: NotesListProps) => {
           </CardContent>
           <CardFooter>
             <Button 
-              onClick={() => handleDownload(note)} 
+              onClick={(e) => handleDownload(note, e)} 
               variant="outline" 
               className="w-full"
             >
