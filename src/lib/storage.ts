@@ -1,4 +1,3 @@
-
 export interface Subject {
   id: string;
   name: string;
@@ -61,6 +60,22 @@ export const deleteSubject = (id: string): boolean => {
   return false;
 };
 
+// Aggiorna una materia esistente
+export const updateSubject = (id: string, name: string): boolean => {
+  const subjects = getSubjects();
+  const index = subjects.findIndex(subject => subject.id === id);
+  
+  if (index !== -1) {
+    subjects[index] = {
+      ...subjects[index],
+      name
+    };
+    localStorage.setItem('subjects', JSON.stringify(subjects));
+    return true;
+  }
+  return false;
+};
+
 // Recupera gli appunti per una materia specifica
 export const getNotes = (subjectId: string): Note[] => {
   const notes = localStorage.getItem('notes');
@@ -109,9 +124,29 @@ export const deleteNote = (id: string): boolean => {
   return false;
 };
 
+// Aggiorna un appunto esistente
+export const updateNote = (id: string, title: string, filename?: string, fileData?: string): boolean => {
+  const notes = localStorage.getItem('notes');
+  if (!notes) return false;
+  
+  const allNotes = JSON.parse(notes);
+  const index = allNotes.findIndex((note: Note) => note.id === id);
+  
+  if (index !== -1) {
+    allNotes[index] = {
+      ...allNotes[index],
+      title,
+      ...(filename && { filename }),
+      ...(fileData && { fileData })
+    };
+    localStorage.setItem('notes', JSON.stringify(allNotes));
+    return true;
+  }
+  return false;
+};
+
 // Scarica un file
 export const downloadFile = (note: Note) => {
-  // Crea un elemento 'a' per il download
   const link = document.createElement('a');
   link.href = note.fileData;
   link.download = note.filename;

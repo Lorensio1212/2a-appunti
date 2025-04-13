@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Download, FileText, MoreVertical, Trash2 } from "lucide-react";
+import { Download, FileText, MoreVertical, Trash2, Pencil } from "lucide-react";
 import { getNotes, Note, downloadFile, deleteNote } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import NoteEditForm from "./NoteEditForm";
 
 interface NotesListProps {
   subjectId: string;
@@ -18,6 +19,7 @@ interface NotesListProps {
 
 const NotesList = ({ subjectId }: NotesListProps) => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
 
   const loadNotes = () => {
     const loadedNotes = getNotes(subjectId);
@@ -51,6 +53,17 @@ const NotesList = ({ subjectId }: NotesListProps) => {
       toast.error("Errore durante l'eliminazione dell'appunto");
       console.error(error);
     }
+  };
+
+  const handleEditNote = (note: Note, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setEditingNote(note);
+  };
+
+  const handleEditSuccess = () => {
+    setEditingNote(null);
+    loadNotes();
   };
 
   useEffect(() => {
@@ -87,6 +100,13 @@ const NotesList = ({ subjectId }: NotesListProps) => {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem 
+                  className="cursor-pointer" 
+                  onClick={(e) => handleEditNote(note, e)}
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Modifica
+                </DropdownMenuItem>
+                <DropdownMenuItem 
                   className="text-red-500 focus:text-red-500 cursor-pointer" 
                   onClick={(e) => handleDeleteNote(note.id, e)}
                 >
@@ -113,6 +133,15 @@ const NotesList = ({ subjectId }: NotesListProps) => {
           </CardFooter>
         </Card>
       ))}
+
+      {editingNote && (
+        <NoteEditForm
+          open={!!editingNote}
+          onClose={() => setEditingNote(null)}
+          onSuccess={handleEditSuccess}
+          note={editingNote}
+        />
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Book, MoreVertical, Trash2 } from "lucide-react";
+import { Book, MoreVertical, Trash2, Pencil } from "lucide-react";
 import { getSubjects, deleteSubject, Subject } from "@/lib/storage";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -11,9 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import SubjectEditForm from "./SubjectEditForm";
 
 const SubjectList = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
 
   const loadSubjects = () => {
     const loadedSubjects = getSubjects();
@@ -47,6 +49,17 @@ const SubjectList = () => {
     }
   };
 
+  const handleEditSubject = (subject: Subject, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingSubject(subject);
+  };
+
+  const handleEditSuccess = () => {
+    setEditingSubject(null);
+    loadSubjects();
+  };
+
   if (subjects.length === 0) {
     return (
       <div className="text-center py-10">
@@ -73,6 +86,13 @@ const SubjectList = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem 
+                    className="cursor-pointer" 
+                    onClick={(e) => handleEditSubject(subject, e)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Modifica
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
                     className="text-red-500 focus:text-red-500 cursor-pointer" 
                     onClick={(e) => handleDeleteSubject(subject.id, e)}
                   >
@@ -95,6 +115,15 @@ const SubjectList = () => {
           </Card>
         </Link>
       ))}
+
+      {editingSubject && (
+        <SubjectEditForm
+          open={!!editingSubject}
+          onClose={() => setEditingSubject(null)}
+          onSuccess={handleEditSuccess}
+          subject={editingSubject}
+        />
+      )}
     </div>
   );
 };
