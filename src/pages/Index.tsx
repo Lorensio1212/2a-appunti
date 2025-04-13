@@ -1,13 +1,40 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from "react";
+import Layout from "@/components/Layout";
+import AddButton from "@/components/AddButton";
+import SubjectList from "@/components/SubjectList";
+import SubjectForm from "@/components/SubjectForm";
 
 const Index = () => {
+  const [showSubjectForm, setShowSubjectForm] = useState(false);
+
+  const handleAddSubject = () => {
+    setShowSubjectForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowSubjectForm(false);
+  };
+
+  const handleSuccess = () => {
+    setShowSubjectForm(false);
+    // Emette un evento per aggiornare la lista delle materie
+    window.dispatchEvent(new Event("storage"));
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <Layout
+      action={<AddButton onClick={handleAddSubject} />}
+    >
+      <div className="space-y-6">
+        <SubjectList />
+        <SubjectForm 
+          open={showSubjectForm} 
+          onClose={handleCloseForm} 
+          onSuccess={handleSuccess} 
+        />
       </div>
-    </div>
+    </Layout>
   );
 };
 
